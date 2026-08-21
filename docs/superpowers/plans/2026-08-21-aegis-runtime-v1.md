@@ -1464,136 +1464,30 @@ git commit -m "feat(api): implement REST API ingress gateway and server daemon e
 **Interfaces:**
 - Validates: End-to-End Deterministic Replay & Resumption after simulated process crash
 
-- [ ] **Step 1: Write E2E Crash Recovery Chaos Test**
+- [x] **Step 1: Write E2E Crash Recovery Chaos Test**
 
 Create `tests/chaos/crash_recovery_test.go`:
 ```go
 package chaos_test
-
-import (
-	"context"
-	"os"
-	"testing"
-
-	"github.com/aria-tec/aegis-runtime/pkg/domain"
-	"github.com/aria-tec/aegis-runtime/pkg/llm"
-	"github.com/aria-tec/aegis-runtime/pkg/orchestrator"
-	"github.com/aria-tec/aegis-runtime/pkg/sandbox"
-	"github.com/aria-tec/aegis-runtime/pkg/storage"
-)
-
-func TestChaos_CrashRecoveryReplay(t *testing.T) {
-	dbPath := "chaos_test.db"
-	defer os.Remove(dbPath)
-
-	store, err := storage.NewSQLiteStore(dbPath)
-	if err != nil {
-		t.Fatalf("failed to init store: %v", err)
-	}
-
-	mockLLM := llm.NewMockDriver()
-	mockLLM.RegisterStep(1, domain.StepPromptResponse{
-		Thought: "Step 1: Check orders",
-		ToolCalls: []domain.ToolCall{
-			{ID: "call-1", ToolName: "check_orders", Arguments: "order-99"},
-		},
-		TokensUsed: 100,
-	})
-	mockLLM.RegisterStep(2, domain.StepPromptResponse{
-		Thought: "Step 2: Issue refund",
-		ToolCalls: []domain.ToolCall{
-			{ID: "call-2", ToolName: "issue_refund", Arguments: "refund-99"},
-		},
-		TokensUsed: 100,
-	})
-	mockLLM.RegisterStep(3, domain.StepPromptResponse{
-		Thought:     "Step 3: All steps finished",
-		IsComplete:  true,
-		FinalResult: "Customer refunded successfully",
-		TokensUsed:  80,
-	})
-
-	runner := sandbox.NewProcessRunner("scratch_chaos")
-	defer os.RemoveAll("scratch_chaos")
-
-	// Phase 1: Run workflow with timeout cancellation to simulate crash at step 2
-	engine1 := orchestrator.NewEngine(store, mockLLM, runner)
-
-	// Create and run
-	wf, err := engine1.StartWorkflow(context.Background(), "wf-chaos-1", "Handle Customer Refund", 10, 8000)
-	if err != nil {
-		t.Fatalf("failed to start workflow: %v", err)
-	}
-
-	if wf.Status != domain.StatusCompleted {
-		t.Fatalf("expected completed, got %s", wf.Status)
-	}
-
-	// Close store instance to simulate process termination
-	store.Close()
-
-	// Phase 2: Open brand new store instance on same DB file (simulating server restart)
-	store2, err := storage.NewSQLiteStore(dbPath)
-	if err != nil {
-		t.Fatalf("failed to reopen store: %v", err)
-	}
-	defer store2.Close()
-
-	engine2 := orchestrator.NewEngine(store2, mockLLM, runner)
-
-	// Resume workflow
-	resumedWf, err := engine2.ResumeWorkflow(context.Background(), "wf-chaos-1")
-	if err != nil {
-		t.Fatalf("failed to resume workflow: %v", err)
-	}
-
-	if resumedWf.Status != domain.StatusCompleted {
-		t.Fatalf("expected resumed status COMPLETED, got %s", resumedWf.Status)
-	}
-
-	events, err := store2.GetEvents(context.Background(), "wf-chaos-1")
-	if err != nil {
-		t.Fatalf("failed to read events: %v", err)
-	}
-
-	if len(events) == 0 {
-		t.Fatalf("expected non-empty event history")
-	}
-}
+...
 ```
 
-- [ ] **Step 2: Create Dockerfile**
+- [x] **Step 2: Create Dockerfile**
 
 Create `Dockerfile`:
 ```dockerfile
-FROM golang:1.27-alpine AS builder
-
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/aegis-server ./cmd/server
-
-FROM alpine:latest
-
-WORKDIR /app
-COPY --from=builder /app/aegis-server /app/aegis-server
-
-EXPOSE 8085
-VOLUME /app/data
-
-ENTRYPOINT ["/app/aegis-server"]
+...
 ```
 
-- [ ] **Step 3: Run all tests in the repository**
+- [x] **Step 3: Run all tests in the repository**
 
 Run: `go test ./... -v`
 Expected: 100% PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/chaos/ Dockerfile
 git commit -m "test(chaos): add crash-recovery replay validation test and Dockerfile"
 ```
+
