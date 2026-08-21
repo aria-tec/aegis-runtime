@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: ['1.25', 'stable', 'tip']
+        go-version: ['1.25', '1.26', 'stable']
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
@@ -70,10 +70,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-        continue-on-error: ${{ matrix.go-version == 'tip' }}
 
       - name: Build and Test Matrix
         run: |
           go build ./...
           go test -v ./...
-        continue-on-error: ${{ matrix.go-version == 'tip' }}
