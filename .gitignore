@@ -1,0 +1,34 @@
+# Binaries
+bin/
+aegis-server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts & databases
+*.test
+*.out
+data/*.db
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
+scratch/
+test_*.db
+chaos_test*.db
+
+# Environment variables
+.env
+.env.local
+*.env
+
+# IDE & OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Superpowers and Claude local configs
+.claude/
+.superpowers/
