@@ -41,7 +41,7 @@ func main() {
 			dbPath = "data/aegis.db"
 		}
 		if dir := filepath.Dir(dbPath); dir != "" && dir != "." {
-			_ = os.MkdirAll(dir, 0755)
+			_ = os.MkdirAll(dir, 0750)
 		}
 		log.Printf("Initializing SQLite storage backend at %s...\n", dbPath)
 		store, err = storage.NewSQLiteStore(dbPath)
@@ -49,7 +49,9 @@ func main() {
 			log.Fatalf("Failed to initialize SQLite storage: %v", err)
 		}
 	}
-	defer store.Close()
+	defer func() {
+		_ = store.Close()
+	}()
 
 	// 2. Initialize LLM Provider Driver
 	var driver llm.Driver
@@ -77,15 +79,16 @@ func main() {
 	if scratchDir == "" {
 		scratchDir = "scratch"
 	}
-	_ = os.MkdirAll(scratchDir, 0755)
+	_ = os.MkdirAll(scratchDir, 0750)
 
 	runner := sandbox.NewProcessRunner(scratchDir)
 	engine := orchestrator.NewEngine(store, driver, runner)
 	server := api.NewServer(engine, store)
 
 	httpServer := &http.Server{
-		Addr:    ":" + port,
-		Handler: server.Handler(),
+		Addr:              ":" + port,
+		Handler:           server.Handler(),
+		ReadHeaderTimeout: 10 * time.Second, // G112: Mitigate Slowloris attacks
 	}
 
 	// 4. Start HTTP Daemon

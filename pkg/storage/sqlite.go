@@ -22,19 +22,19 @@ func NewSQLiteStore(dsn string) (*SQLiteStore, error) {
 
 	// Enable WAL mode and foreign keys
 	if _, err := db.Exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;"); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to set pragmas: %w", err)
 	}
 
 	// Auto-run embedded migrations
 	schema, err := MigrationsFS.ReadFile("migrations/001_init.sql")
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to read migrations: %w", err)
 	}
 
 	if _, err := db.Exec(string(schema)); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to execute migrations: %w", err)
 	}
 
@@ -154,7 +154,9 @@ func (s *SQLiteStore) GetEvents(ctx context.Context, workflowID string) ([]domai
 	if err != nil {
 		return nil, fmt.Errorf("failed to query events: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	events := make([]domain.WorkflowEvent, 0)
 	for rows.Next() {

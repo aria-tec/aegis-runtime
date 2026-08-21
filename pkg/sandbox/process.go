@@ -82,9 +82,9 @@ func (p *ProcessRunner) Execute(ctx context.Context, req domain.ToolExecutionReq
 	execCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// Prepare isolated work directory
+	// Prepare isolated work directory with restrictive 0750 permissions (G301 compliance)
 	targetDir := filepath.Join(p.baseWorkDir, req.WorkflowID)
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create sandbox dir: %w", err)
 	}
 
