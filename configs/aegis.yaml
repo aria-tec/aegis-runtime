@@ -1,0 +1,54 @@
+# 🛡️ Aegis-Runtime v1.0.0 Configuration File
+
+# Server Network Configuration
+server:
+  # Port to listen on (Override via AEGIS_PORT environment variable)
+  port: 8085
+  # Host interface to bind
+  host: "0.0.0.0"
+  # Graceful shutdown timeout in seconds
+  shutdown_timeout_secs: 5
+
+# Storage Configuration
+storage:
+  # Storage backend driver: "sqlite" (default) or "postgres"
+  driver: "sqlite"
+  # SQLite database path (Override via AEGIS_DB_PATH environment variable)
+  sqlite_path: "data/aegis.db"
+  # PostgreSQL connection URL (Override via DATABASE_URL environment variable)
+  # postgres_url: "postgres://user:password@localhost:5432/aegis?sslmode=disable"
+
+# AI Provider Configuration
+llm:
+  # Provider type: "mock" (default offline deterministic), "openai", or "gemini" (Override via LLM_PROVIDER)
+  provider: "mock"
+  # OpenAI / Gemini API Key (Override via OPENAI_API_KEY or GEMINI_API_KEY)
+  # api_key: "your-api-key-here"
+  # LLM endpoint base URL (Override via LLM_BASE_URL)
+  base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  # Model identifier (Override via LLM_MODEL)
+  model: "gemini-2.5-flash"
+  # Request timeout in seconds
+  timeout_secs: 30
+
+# Sandboxed Tool Execution Configuration
+sandbox:
+  # Runner type: "process" (lightweight env scrubbing) or "docker" (ephemeral container)
+  runner: "process"
+  # Base scratch workspace directory for isolated executions (Override via AEGIS_SCRATCH_DIR)
+  scratch_dir: "scratch"
+  # Default tool execution timeout in seconds
+  timeout_secs: 10
+  # Docker container image (applicable if runner: "docker")
+  docker_image: "alpine:latest"
+  # Docker memory limit in megabytes
+  memory_limit_mb: 128
+
+# Orchestrator Circuit Breakers & Safeguards
+orchestrator:
+  # Default maximum step limit per agent workflow
+  default_max_steps: 10
+  # Default token consumption budget before tripping circuit breaker
+  default_token_budget: 8000
+  # Maximum overall workflow execution timeout in seconds
+  workflow_timeout_secs: 60
