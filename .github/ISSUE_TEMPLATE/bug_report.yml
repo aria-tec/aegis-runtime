@@ -1,0 +1,54 @@
+name: "🐛 Deterministic Bug Report"
+description: "Report a reproducible bug or defect in Aegis-Runtime"
+title: "[BUG]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. To maintain high engineering reliability, all bug reports require a **minimal, deterministic reproducer**.
+  - type: input
+    id: version
+    attributes:
+      label: Aegis-Runtime Version
+      description: "Which version or Git commit hash are you running?"
+      placeholder: "e.g., v1.0.0 (commit 985bd07)"
+    validations:
+      required: true
+  - type: dropdown
+    id: storage_driver
+    attributes:
+      label: Storage & LLM Driver Backend
+      description: "Which backend and driver are in use?"
+      options:
+        - "SQLiteStore + MockDriver"
+        - "SQLiteStore + OpenAICompatibleDriver (Gemini/OpenAI)"
+        - "PostgresStore + MockDriver"
+        - "PostgresStore + OpenAICompatibleDriver"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: "A clear and concise description of what the unexpected behavior is."
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Deterministic Go Test or cURL Script Reproducer
+      description: "Provide a minimal Go test case or cURL bash snippet that reproduces the issue 100% of the time."
+      render: go
+      placeholder: |
+        func TestReproduceIssue(t *testing.T) {
+            // Minimal test reproducing the bug
+        }
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server Logs / Event Sourcing Output
+      description: "Output from `GET /api/v1/workflows/{id}/history` or daemon logs."
+      render: shell

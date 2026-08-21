@@ -113,6 +113,41 @@ func TestProcessRunner_ExecuteWithEnvScrubbing(t *testing.T) {
 	}
 }
 
+func TestProcessRunner_OutputBombProtection(t *testing.T) {
+	tempDir := t.TempDir()
+	runner := sandbox.NewProcessRunner(tempDir)
+	// Set small limit (1KB) for fast deterministic test
+	runner.SetMaxOutputBytes(1024)
+	ctx := context.Background()
+
+	// Tool generates 50KB of data
+	req := domain.ToolExecutionRequest{
+		WorkflowID:  "wf-test-output-bomb",
+		StepNumber:  1,
+		ToolName:    "flood_tool",
+		Command:     "sh",
+		Args:        []string{"-c", "for i in $(seq 1 1000); do echo 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'; done"},
+		TimeoutSecs: 5,
+	}
+
+	result, err := runner.Execute(ctx, req)
+	if err != nil {
+		t.Fatalf("unexpected execution error: %v", err)
+	}
+
+	if result.ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d", result.ExitCode)
+	}
+
+	// Verify stdout is capped and contains truncation warning
+	if len(result.Stdout) > 2048 {
+		t.Fatalf("SECURITY VIOLATION: output exceeded safety buffer! Buffer length: %d", len(result.Stdout))
+	}
+	if !strings.Contains(result.Stdout, "[TRUNCATED: Output exceeded safety buffer limit]") {
+		t.Fatalf("expected truncation notice in output, got: %s", result.Stdout)
+	}
+}
+
 func TestProcessRunner_Stdin(t *testing.T) {
 	tempDir := t.TempDir()
 	runner := sandbox.NewProcessRunner(tempDir)

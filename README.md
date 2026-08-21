@@ -4,6 +4,7 @@
 [![Build Status](https://img.shields.io/badge/Tests-100%25%20Passing-success?style=flat)](tests/)
 [![Zero CGO](https://img.shields.io/badge/CGO-Disabled%20(Zero%20CGO)-blue?style=flat)](pkg/storage/)
 [![Release](https://img.shields.io/badge/Release-v1.0.0--frozen-cyan?style=flat)](https://github.com/aria-tec/aegis-runtime)
+[![Security Invariants](https://img.shields.io/badge/Security-Hardened%20(Govulncheck%20%2B%20Fuzzing)-green?style=flat)](.github/workflows/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Aegis-Runtime** is an enterprise-grade, standalone, fault-tolerant **AI Agent Execution Engine & Sandboxed Tool Gateway** written in pure Go. It bridges the gap between non-deterministic Large Language Models and mission-critical backend systems by providing **Durable Event-Sourced State Machine Replay**, **Zero-Leak Process/Docker Sandboxing**, and **Universal REST & Model Context Protocol (MCP) Ingress**.
@@ -64,6 +65,7 @@ In modern software systems (2026), deploying autonomous multi-step AI Agents in 
 * **🔄 Durable Event Sourcing:** Immutable step history (`WORKFLOW_STARTED`, `STEP_STARTED`, `LLM_PROMPTED`, `TOOL_CALLED`, `TOOL_COMPLETED`, `WORKFLOW_COMPLETED`).
 * **🛡️ Sandboxed Tool Execution:** 
   * `ProcessRunner`: 1–5ms execution with strict host environment scrubbing (wipes host `AWS_KEY` / `API_KEY` before execution).
+  * `Output Bomb Protection`: Bounded 1MB buffer (`io.LimitReader`) preventing OOM denial-of-service from infinite stdout/stderr loops.
   * `DockerRunner`: Ephemeral container isolation (`alpine`, `python:3.12-slim`) with memory quotas (128MB) and CPU limits.
 * **🧠 Hybrid Dual-Driver LLM Support:**
   * `MockDriver`: Deterministic scriptable reasoning for offline tests and instant CI/CD.
@@ -189,19 +191,36 @@ curl -X POST http://localhost:8085/api/v1/workflows/wf-inventory-101/resume
 
 ---
 
-## 🧪 Testing & Chaos Verification
+## 🛡️ Active Vulnerability Hunter & Maintenance Framework ("The SQLite Standard")
 
-Aegis-Runtime comes with comprehensive unit and chaos tests covering crash recovery, concurrency, foreign key integrity, and host environment sanitization:
+Aegis-Runtime adheres to **The SQLite Standard** for long-term reliability and zero maintenance burden:
+
+| Pillar | Mechanism | Security & Stability Guarantee |
+|---|---|---|
+| **Pillar 1: Bounded Memory & Subprocess Cleanup** | `io.LimitReader` (1MB limit) in `pkg/sandbox` | Defends against Tool Output Bomb OOM attacks; guarantees zero zombie child processes. |
+| **Pillar 2: Continuous Fuzz Testing** | Native Go Fuzzing in `tests/fuzz_test.go` | Fuzzes Model Context Protocol (MCP) JSON-RPC parser and domain serialization against 100k+ mutated payloads. |
+| **Pillar 3: Goroutine Leak Invariant Gate** | `go.uber.org/goleak` in `tests/leak_test.go` | Enforces zero dangling goroutines across completed workflows, cancelled contexts, and HTTP requests. |
+| **Pillar 4: Automated Maintenance CI** | `.github/workflows/scheduled-maintenance.yml` | Weekly automated CVE scans via official `govulncheck`, static security analysis (`gosec`), and multi-version Go matrix testing. |
+
+---
+
+## 📜 Public Stability Charter
+
+* **Frozen Core Invariants:** Aegis-Runtime v1.0.0 is architecturally complete and frozen. Future minor releases will never introduce breaking REST/MCP API changes.
+* **Deterministic Bug Reproducibility:** Bug reports are submitted via [GitHub Issue Template](.github/ISSUE_TEMPLATE/bug_report.yml) requiring a minimal deterministic Go test case or cURL reproducer.
+
+---
+
+## 🧪 Testing & Verification
 
 ```bash
-# Run all unit and chaos tests with race detection and coverage
+# Run all unit, chaos, and leak invariant tests with race detector
 go test -race -cover ./...
-```
 
-### Chaos Replay Test Highlights:
-* Simulates abrupt process termination (`KILL -9`) and power loss at Step 2 of multi-step execution.
-* Reboots a fresh engine against the database and executes `ResumeWorkflow()`.
-* Asserts **100% deterministic event log integrity** and **0 duplicate tool calls**.
+# Run continuous Go fuzzers (30s per target)
+go test -v -fuzz=FuzzDomainEventJSON -fuzztime=30s ./tests/...
+go test -v -fuzz=FuzzMCPHandler -fuzztime=30s ./tests/...
+```
 
 ---
 
@@ -209,22 +228,30 @@ go test -race -cover ./...
 
 ```text
 aegis-runtime/
+├── .github/
+│   ├── workflows/
+│   │   └── scheduled-maintenance.yml # Weekly govulncheck, gosec & fuzzing CI
+│   └── ISSUE_TEMPLATE/
+│       ├── bug_report.yml            # Deterministic bug reproducer template
+│       └── config.yml
 ├── cmd/
 │   └── server/
-│       └── main.go                 # Standalone daemon entrypoint (:8085)
+│       └── main.go                   # Standalone daemon entrypoint (:8085)
 ├── pkg/
-│   ├── domain/                     # Core domain entities & event types
-│   ├── storage/                    # SQLite & Postgres adapters + embedded migrations
-│   ├── llm/                        # MockDriver & OpenAICompatibleDriver
-│   ├── sandbox/                    # ProcessRunner (env scrubbing) & DockerRunner
-│   ├── orchestrator/               # Durable State Machine & Replay Engine
-│   └── api/                        # REST & Model Context Protocol (MCP) handlers
+│   ├── domain/                       # Core domain entities & event types
+│   ├── storage/                      # SQLite & Postgres adapters + embedded migrations
+│   ├── llm/                          # MockDriver & OpenAICompatibleDriver
+│   ├── sandbox/                      # ProcessRunner (env scrubbing & output bomb guard) & DockerRunner
+│   ├── orchestrator/                 # Durable State Machine & Replay Engine
+│   └── api/                          # REST & Model Context Protocol (MCP) handlers
 ├── tests/
-│   └── chaos/                      # Crash-recovery & replay validation tests
+│   ├── chaos/                        # Crash-recovery & replay validation tests
+│   ├── fuzz_test.go                  # Go native fuzz testing suite
+│   └── leak_test.go                  # Goleak goroutine & resource invariant tests
 ├── configs/
-│   └── aegis.yaml                  # Configuration template
-├── Dockerfile                      # Standalone OCI multi-stage container
-├── README.md                       # Comprehensive documentation
+│   └── aegis.yaml                    # Configuration template
+├── Dockerfile                        # Standalone OCI multi-stage container
+├── README.md                         # Comprehensive documentation & Stability Charter
 └── go.mod
 ```
 
