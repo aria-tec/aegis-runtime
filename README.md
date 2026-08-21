@@ -218,8 +218,8 @@ Aegis-Runtime adheres to **The SQLite Standard** for long-term reliability and z
 go test -race -cover ./...
 
 # Run continuous Go fuzzers (30s per target)
-go test -v -fuzz=FuzzDomainEventJSON -fuzztime=30s ./tests/...
-go test -v -fuzz=FuzzMCPHandler -fuzztime=30s ./tests/...
+go test -v -fuzz=FuzzDomainEventJSON -fuzztime=30s ./tests
+go test -v -fuzz=FuzzMCPHandler -fuzztime=30s ./tests
 ```
 
 ---

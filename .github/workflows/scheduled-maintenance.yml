@@ -48,9 +48,9 @@ jobs:
 
       - name: Run Go Native Fuzz Testing Suite (30s per target)
         run: |
-          go test -v -fuzz=FuzzDomainEventJSON -fuzztime=30s ./tests/...
-          go test -v -fuzz=FuzzExecuteAgentAPI -fuzztime=30s ./tests/...
-          go test -v -fuzz=FuzzMCPHandler -fuzztime=30s ./tests/...
+          go test -v -fuzz=FuzzDomainEventJSON -fuzztime=30s ./tests
+          go test -v -fuzz=FuzzExecuteAgentAPI -fuzztime=30s ./tests
+          go test -v -fuzz=FuzzMCPHandler -fuzztime=30s ./tests
 
   # =========================================================================
   # ADVISORY GATE (Non-blocking): Multi-Version Go Forward Compatibility
