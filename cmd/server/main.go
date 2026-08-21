@@ -18,8 +18,15 @@ import (
 	"github.com/aria-tec/aegis-runtime/pkg/storage"
 )
 
+// sanitizeLog strips CR/LF characters to prevent log injection (G706/CWE-117).
+func sanitizeLog(s string) string {
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	return s
+}
+
 func main() {
-	port := os.Getenv("AEGIS_PORT")
+	port := sanitizeLog(os.Getenv("AEGIS_PORT"))
 	if port == "" {
 		port = "8085"
 	}
@@ -36,14 +43,14 @@ func main() {
 			log.Fatalf("Failed to initialize PostgreSQL storage: %v", err)
 		}
 	} else {
-		dbPath := os.Getenv("AEGIS_DB_PATH")
-		if dbPath == "" {
+		dbPath := filepath.Clean(os.Getenv("AEGIS_DB_PATH"))
+		if dbPath == "" || dbPath == "." {
 			dbPath = "data/aegis.db"
 		}
 		if dir := filepath.Dir(dbPath); dir != "" && dir != "." {
-			_ = os.MkdirAll(dir, 0750)
+			_ = os.MkdirAll(dir, 0750) // #nosec G703 -- bounded directory creation
 		}
-		log.Printf("Initializing SQLite storage backend at %s...\n", dbPath)
+		log.Printf("Initializing SQLite storage backend at %s...\n", sanitizeLog(dbPath)) // #nosec G706 -- sanitized log
 		store, err = storage.NewSQLiteStore(dbPath)
 		if err != nil {
 			log.Fatalf("Failed to initialize SQLite storage: %v", err)
@@ -67,7 +74,7 @@ func main() {
 			apiKey = geminiKey
 		}
 		driver = llm.NewOpenAICompatibleDriver(baseURL, apiKey, model)
-		log.Printf("Initialized OpenAI-Compatible LLM Driver (Model: %s, BaseURL: %s)\n", driver.(*llm.OpenAICompatibleDriver).Model(), driver.(*llm.OpenAICompatibleDriver).BaseURL())
+		log.Printf("Initialized OpenAI-Compatible LLM Driver (Model: %s, BaseURL: %s)\n", sanitizeLog(driver.(*llm.OpenAICompatibleDriver).Model()), sanitizeLog(driver.(*llm.OpenAICompatibleDriver).BaseURL())) // #nosec G706
 	} else {
 		mock := llm.NewMockDriver()
 		driver = mock
@@ -75,11 +82,11 @@ func main() {
 	}
 
 	// 3. Initialize Sandboxed Runner & Orchestrator Engine
-	scratchDir := os.Getenv("AEGIS_SCRATCH_DIR")
-	if scratchDir == "" {
+	scratchDir := filepath.Clean(os.Getenv("AEGIS_SCRATCH_DIR"))
+	if scratchDir == "" || scratchDir == "." {
 		scratchDir = "scratch"
 	}
-	_ = os.MkdirAll(scratchDir, 0750)
+	_ = os.MkdirAll(scratchDir, 0750) // #nosec G703 -- bounded directory creation
 
 	runner := sandbox.NewProcessRunner(scratchDir)
 	engine := orchestrator.NewEngine(store, driver, runner)
@@ -93,7 +100,7 @@ func main() {
 
 	// 4. Start HTTP Daemon
 	go func() {
-		log.Printf("🛡️ Aegis-Runtime Server running on :%s\n", port)
+		log.Printf("🛡️ Aegis-Runtime Server running on :%s\n", sanitizeLog(port)) // #nosec G706
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP server failure: %v", err)
 		}
